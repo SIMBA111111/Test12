@@ -1,0 +1,31 @@
+version: '3'
+
+services:
+  django-app:
+    build: ./
+    container_name: django-app
+    command: python manage.py runserver 0.0.0.0:8000
+    ports:
+      - "8000:8000"
+    depends_on:
+      - redis
+    environment:
+      - DJANGO_SETTINGS_MODULE=config.settings
+      - CELERY_BROKER_URL=redis://localhost:6379/0
+
+  redis:
+    image: "redis:latest"
+    container_name: redis
+    ports:
+      - "6379:6379"
+
+  celery-beat:
+    image: django-app
+    container_name: celery-beat
+    command: celery -A config beat --loglevel=debug --scheduler django_celery_beat.schedulers:DatabaseScheduler
+
+    depends_on:
+      - django-app
+    environment:
+      - DJANGO_SETTINGS_MODULE=setting.settings
+      - CELERY_BROKER_URL=redis://redis:6379/0
